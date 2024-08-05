@@ -27,7 +27,7 @@ app.use(express.static(path.join(__dirname, '../frontend')));
 
 // Setup multer for file uploads with a file size limit of 100 MB
 const upload = multer({
-    dest: uploadDir,
+    storage: multer.memoryStorage(), // Use memory storage for debugging
     limits: { fileSize: 100 * 1024 * 1024 } // 100 MB limit
 });
 
@@ -40,9 +40,7 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
         return res.status(400).json({ message: 'No file uploaded' });
     }
 
-    const filePath = path.join(uploadDir, req.file.filename);
-    const fileContent = fs.readFileSync(filePath);
-    const base64Content = fileContent.toString('base64');
+    const base64Content = req.file.buffer.toString('base64');
 
     try {
         const response = await axios.put(
@@ -55,17 +53,16 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
                 headers: {
                     Authorization: `Bearer ${GITHUB_TOKEN}`,
                     'Content-Type': 'application/json'
-                }
+                },
+                maxBodyLength: Infinity // Ensure axios can handle large requests
             }
         );
 
         console.log(`File committed to GitHub: ${response.data.content.path}`);
         res.json({ message: 'File uploaded and committed to GitHub successfully!' });
     } catch (error) {
-        console.error('Error committing file to GitHub:', error);
+        console.error('Error committing file to GitHub:', error.message);
         res.status(500).json({ message: 'File upload failed', error: error.message });
-    } finally {
-        fs.unlinkSync(filePath); // Clean up the uploaded file from the server
     }
 });
 
@@ -84,7 +81,7 @@ app.get('/api/files', async (req, res) => {
         const fileData = response.data.map(file => ({ name: file.name, url: file.download_url }));
         res.json(fileData);
     } catch (error) {
-        console.error('Error fetching file list from GitHub:', error);
+        console.error('Error fetching file list from GitHub:', error.message);
         res.status(500).json({ message: 'Failed to fetch file list', error: error.message });
     }
 });
