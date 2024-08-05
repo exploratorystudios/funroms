@@ -97,9 +97,10 @@
                 } else {
                     messageDiv.innerText = 'File upload failed: ' + result.message;
                     messageDiv.style.color = 'red';
+                    console.error('Error response from server:', result);
                 }
             } catch (error) {
-                console.error(error);
+                console.error('Network or server error:', error);
                 messageDiv.innerText = 'File upload failed: ' + error.message;
                 messageDiv.style.color = 'red';
             } finally {
