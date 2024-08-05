@@ -1,0 +1,21 @@
+version: 1
+services:
+  - type: web
+    name: frontend
+    env: static
+    staticPublishPath: frontend
+    buildCommand: npm install
+    startCommand: npm start
+
+  - type: web
+    name: backend
+    env: node
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && npm start
+    routes:
+      - type: rewrite
+        source: /api/upload
+        destination: /backend/api/upload
+      - type: rewrite
+        source: /api/files
+        destination: /backend/api/files
