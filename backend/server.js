@@ -23,7 +23,19 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
         return res.status(400).json({ message: 'No file uploaded' });
     }
 
-    res.json({ message: 'File uploaded successfully!' });
+    // Additional logging for debugging
+    console.log('File details:', req.file);
+
+    try {
+        // Simulate processing the file or move the file to a different directory
+        const targetPath = path.join(__dirname, 'uploads', req.file.originalname);
+        fs.renameSync(req.file.path, targetPath);
+
+        res.json({ message: 'File uploaded successfully!' });
+    } catch (error) {
+        console.error('Error during file processing:', error);
+        res.status(500).json({ message: 'File upload failed', error: error.message });
+    }
 });
 
 // Endpoint to list files
