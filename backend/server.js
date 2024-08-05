@@ -7,6 +7,12 @@ const cors = require('cors');
 const app = express();
 const port = process.env.PORT || 3000;
 
+// Ensure the uploads directory exists
+const uploadDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+}
+
 // Use CORS middleware
 app.use(cors({ origin: 'https://exploratorystudios.github.io' }));
 
@@ -14,7 +20,7 @@ app.use(cors({ origin: 'https://exploratorystudios.github.io' }));
 app.use(express.static(path.join(__dirname, '../frontend')));
 
 // Setup multer for file uploads
-const upload = multer({ dest: 'uploads/' });
+const upload = multer({ dest: uploadDir });
 
 // Endpoint to handle file upload
 app.post('/api/upload', upload.single('file'), (req, res) => {
@@ -28,7 +34,7 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
     }
 
     try {
-        const targetPath = path.join(__dirname, 'uploads', req.file.originalname);
+        const targetPath = path.join(uploadDir, req.file.originalname);
         fs.rename(req.file.path, targetPath, (err) => {
             if (err) {
                 console.error('Error moving file:', err);
@@ -45,8 +51,7 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
 
 // Endpoint to list files
 app.get('/api/files', (req, res) => {
-    const uploadsDir = path.join(__dirname, 'uploads');
-    fs.readdir(uploadsDir, (err, files) => {
+    fs.readdir(uploadDir, (err, files) => {
         if (err) {
             console.error('Error reading uploads directory:', err);
             return res.status(500).send('Unable to scan directory.');
