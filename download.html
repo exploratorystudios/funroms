@@ -37,8 +37,12 @@
                     throw new Error('Network response was not ok');
                 }
                 const data = await response.json();
+
+                // Sort files by their last update date
+                const sortedData = data.sort((a, b) => new Date(b.last_modified) - new Date(a.last_modified));
+
                 const fileList = document.getElementById('file-list');
-                data.forEach(file => {
+                sortedData.forEach(file => {
                     const li = document.createElement('li');
                     const a = document.createElement('a');
                     a.href = file.download_url; // Direct URL to the raw file
