@@ -28,7 +28,7 @@ const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 app.post('/api/upload', upload.single('file'), async (req, res) => {
     console.log('File upload request received');
     if (!req.file) {
-        console.log('No file uploaded');
+        console.error('No file uploaded');
         return res.status(400).json({ message: 'No file uploaded' });
     }
 
@@ -36,8 +36,6 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
         const filePath = req.file.path;
         const fileContent = fs.readFileSync(filePath, 'base64');
         const fileName = req.file.originalname;
-
-        console.log(`Uploading file: ${fileName}`);
 
         const response = await axios.put(
             `https://api.github.com/repos/${GITHUB_REPO}/contents/uploads/${fileName}`,
@@ -54,14 +52,12 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
             }
         );
 
-        console.log(`GitHub response: ${response.status} ${response.statusText}`);
-
         fs.unlinkSync(filePath);  // Clean up the uploaded file from the server
 
         res.json({ message: 'File uploaded successfully!' });
     } catch (error) {
         console.error('Error during file upload:', error.response ? error.response.data : error.message);
-        res.status(500).json({ message: 'File upload failed', error: error.message });
+        res.status(500).json({ message: 'File upload failed', error: error.response ? error.response.data : error.message });
     }
 });
 
