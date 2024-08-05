@@ -1,83 +1,69 @@
 const express = require('express');
 const multer = require('multer');
-const axios = require('axios');
 const path = require('path');
 const fs = require('fs');
 const cors = require('cors');
+const axios = require('axios');
+
 const app = express();
 const port = process.env.PORT || 3000;
 
-// CORS configuration
-const corsOptions = {
-    origin: 'https://exploratorystudios.github.io',
-    credentials: true,
-};
-app.use(cors(corsOptions));
+// Ensure the uploads directory exists
+const uploadDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+    console.log('Uploads directory created');
+}
 
-// Middleware to serve static files from the frontend directory
+// Use CORS middleware
+app.use(cors({ origin: 'https://exploratorystudios.github.io' }));
+
+// Middleware to serve static files from frontend directory
 app.use(express.static(path.join(__dirname, '../frontend')));
 
 // Setup multer for file uploads
-const upload = multer({ dest: 'uploads/' });
-
-// GitHub repository details
-const GITHUB_REPO = 'exploratorystudios/funroms';
-const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+const upload = multer({ dest: uploadDir });
 
 // Endpoint to handle file upload
-app.post('/api/upload', upload.single('file'), async (req, res) => {
+app.post('/api/upload', upload.single('file'), (req, res) => {
     console.log('File upload request received');
+    console.log('Request headers:', req.headers);
+    console.log('Request file:', req.file);
+
     if (!req.file) {
         console.log('No file uploaded');
         return res.status(400).json({ message: 'No file uploaded' });
     }
 
     try {
-        const filePath = req.file.path;
-        const fileContent = fs.readFileSync(filePath, 'base64');
-        const fileName = req.file.originalname;
-
-        console.log(`Uploading file: ${fileName}`);
-
-        const response = await axios.put(
-            `https://api.github.com/repos/${GITHUB_REPO}/contents/uploads/${fileName}`,
-            {
-                message: `Upload file ${fileName}`,
-                content: fileContent,
-                branch: 'main',
-            },
-            {
-                headers: {
-                    'Authorization': `token ${GITHUB_TOKEN}`,
-                    'Content-Type': 'application/json',
-                },
+        const targetPath = path.join(uploadDir, req.file.originalname);
+        fs.rename(req.file.path, targetPath, (err) => {
+            if (err) {
+                console.error('Error moving file:', err);
+                return res.status(500).json({ message: 'File upload failed', error: err.message });
             }
-        );
-
-        console.log(`GitHub response: ${response.status} ${response.statusText}`);
-
-        fs.unlinkSync(filePath);  // Clean up the uploaded file from the server
-
-        res.json({ message: 'File uploaded successfully!' });
+            console.log(`File saved to ${targetPath}`);
+            res.json({ message: 'File uploaded successfully!' });
+        });
     } catch (error) {
-        console.error('Error during file upload:', error.response ? error.response.data : error.message);
-        res.status(500).json({ message: 'File upload failed', error: error.message });
+        console.error('Error during file processing:', error);
+        res.status(500).json({ message: 'File upload failed', error: error.stack });
     }
 });
 
+// Configure Axios to handle large request bodies
+axios.defaults.maxBodyLength = Infinity;
+axios.defaults.maxContentLength = Infinity;
+
 // Endpoint to list files
 app.get('/api/files', (req, res) => {
-    const uploadsDir = path.join(__dirname, '../uploads');
-    fs.readdir(uploadsDir, (err, files) => {
+    fs.readdir(uploadDir, (err, files) => {
         if (err) {
-            console.error('Unable to scan directory:', err);
+            console.error('Error reading uploads directory:', err);
             return res.status(500).send('Unable to scan directory.');
         }
-        const fileList = files.map(file => ({
-            name: file,
-            url: `uploads/${file}`
-        }));
-        res.json({ files: fileList });
+        const fileData = files.map(file => ({ name: file, url: `uploads/${file}` }));
+        res.json(fileData);
     });
 });
 
