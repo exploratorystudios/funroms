@@ -6,49 +6,30 @@
     <title>Upload Files - FunRoms</title>
     <link rel="stylesheet" href="styles.css">
     <style>
-        /* Spinner styles */
+        /* Add the spinner CSS */
         .spinner {
-            display: none;
-            border: 4px solid rgba(0, 0, 0, 0.1);
+            display: none; /* Hidden by default */
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3; /* Light grey */
+            border-top: 5px solid #007bff; /* Blue */
             border-radius: 50%;
-            border-top: 4px solid #fff;
-            width: 24px;
-            height: 24px;
             animation: spin 1s linear infinite;
+            margin: auto;
             position: absolute;
-            right: 1rem;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
         }
 
-        /* Spinner animation */
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
 
-        /* Hide button text when loading */
-        button.loading .button-text {
-            display: none;
-        }
-
-        /* Show spinner when loading */
-        button.loading .spinner {
-            display: block;
-        }
-
-        /* Button styles */
-        button {
+        /* Center the spinner and form container */
+        .center {
             position: relative;
-            padding: 0.75rem 1.5rem;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            background-color: #007bff;
-            color: #fff;
-            font-size: 1rem;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
         }
     </style>
 </head>
@@ -67,15 +48,16 @@
     <main class="container">
         <section id="upload">
             <h2>Upload Files</h2>
-            <form id="uploadForm">
-                <label for="file">Choose file to upload:</label>
-                <input type="file" id="file" name="file" accept=".zip" required>
-                <button type="submit" id="uploadButton">
-                    <span class="button-text">Upload</span>
-                    <span class="spinner"></span>
-                </button>
-            </form>
-            <div id="message"></div>
+            <div class="center">
+                <form id="uploadForm">
+                    <label for="file">Choose file to upload:</label>
+                    <input type="file" id="file" name="file" accept=".zip" required>
+                    <button type="submit">Upload</button>
+                </form>
+                <div id="message"></div>
+                <!-- Spinner for loading indication -->
+                <div class="spinner" id="spinner"></div>
+            </div>
         </section>
     </main>
 
@@ -94,12 +76,10 @@
             const formData = new FormData();
             formData.append('file', file);
 
-            const uploadButton = document.getElementById('uploadButton');
+            const spinner = document.getElementById('spinner');
             const messageDiv = document.getElementById('message');
-            
-            // Show spinner and hide text
-            uploadButton.classList.add('loading');
-            uploadButton.disabled = true; // Disable button during upload
+            messageDiv.innerText = '';
+            spinner.style.display = 'block'; // Show spinner
 
             try {
                 const response = await fetch('https://funroms-backend.onrender.com/api/upload', {
@@ -113,16 +93,18 @@
                 const result = await response.json();
                 if (response.ok) {
                     messageDiv.innerText = result.message;
+                    messageDiv.style.color = 'green';
                 } else {
                     messageDiv.innerText = 'File upload failed: ' + result.message;
+                    messageDiv.style.color = 'red';
+                    console.error('Error response from server:', result);
                 }
             } catch (error) {
-                console.error(error);
+                console.error('Network or server error:', error);
                 messageDiv.innerText = 'File upload failed: ' + error.message;
+                messageDiv.style.color = 'red';
             } finally {
-                // Hide spinner and show text
-                uploadButton.classList.remove('loading');
-                uploadButton.disabled = false;
+                spinner.style.display = 'none'; // Hide spinner
             }
         });
     </script>
