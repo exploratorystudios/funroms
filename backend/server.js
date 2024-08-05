@@ -20,22 +20,26 @@ const upload = multer({ dest: 'uploads/' });
 app.post('/api/upload', upload.single('file'), (req, res) => {
     console.log('File upload request received');
     console.log('Request headers:', req.headers);
+    console.log('Request file:', req.file);
 
     if (!req.file) {
         console.log('No file uploaded');
         return res.status(400).json({ message: 'No file uploaded' });
     }
 
-    console.log('File details:', req.file);
-
     try {
         const targetPath = path.join(__dirname, 'uploads', req.file.originalname);
-        fs.renameSync(req.file.path, targetPath);
-        console.log(`File saved to ${targetPath}`);
-        res.json({ message: 'File uploaded successfully!' });
+        fs.rename(req.file.path, targetPath, (err) => {
+            if (err) {
+                console.error('Error moving file:', err);
+                return res.status(500).json({ message: 'File upload failed', error: err.message });
+            }
+            console.log(`File saved to ${targetPath}`);
+            res.json({ message: 'File uploaded successfully!' });
+        });
     } catch (error) {
         console.error('Error during file processing:', error);
-        res.status(500).json({ message: 'File upload failed', error: error.message });
+        res.status(500).json({ message: 'File upload failed', error: error.stack });
     }
 });
 
